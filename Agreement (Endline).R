@@ -5,16 +5,17 @@ rm(list=ls())
 library(dplyr)
 library(xtable)
 library(caret)
+library(psych)
 
 # Importing observation data
 
-  obs <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HCdata-validated (Observation Endline data).csv",
-                  colClasses=c(X01_CodeObs="character"))
+  obs <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_obs_data_endline.csv",
+                  colClasses=c(Q01_CodeObs="character"))
 
 # Changing variables to match baseline syntax
   
   names(obs) <- ifelse(substr(names(obs), 1, 1) == "X", substr(names(obs), 2, 50), substr(names(obs), 1, 50))
-  names(obs) <- paste("o_Q", names(obs), sep="") 
+  names(obs) <- paste("o_", names(obs), sep="") 
   
   obs <- rename(obs, ID = o_Q01_CodeObs)
   obs <- obs[1:53,]
@@ -39,27 +40,27 @@ library(caret)
   
 # Importing interview data
 
-  ints <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HCdata-validated (Interview Endline data).csv", 
-                   colClasses=c(X05_CodeAccouchee="character"))
+  ints <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_int_data_endline.csv", 
+                   colClasses=c(Q05_CodeAccouchee="character"))
 
 # Changing variables to match baseline syntax
   
   names(ints) <- ifelse(substr(names(ints), 1, 1) == "X", substr(names(ints), 2, 50), substr(names(ints), 1, 50))
-  names(ints) <- paste("i_Q", names(ints), sep="") 
+  names(ints) <- paste("i_", names(ints), sep="") 
   
   ints <- rename(ints, ID = i_Q05_CodeAccouchee )
   ints <- ints[1:226, ]
 
 # Importing partograph data
 
-  part <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HCdata-validated (Partograph Endline data).csv",
+  part <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_part_data_endline.csv",
                    colClasses=c(Code="character"))
 
 # Changing variables to match baseline syntax
   
   names(part) <- ifelse(substr(names(part), 1, 1) == "X", substr(names(part), 2, 50), substr(names(part), 1, 50))
-  names(part) <- paste("p_Q", names(part), sep="")
-  part <- rename(part, ID = p_QCode )
+  names(part) <- paste("p_", names(part), sep="")
+  part <- rename(part, ID = p_Code )
   
 # Adding 0 to beginning of ID when necessary
   
@@ -117,31 +118,34 @@ AUC1 <- function(var1, var2) {
                 #Percent agreement
                 col4 <- (t[1,1] + t[2, 2]) / ( t[1,1] + t[1,2] + t[2,1] + t[2,2] ) * 100
                 
+                #Cohen's kappa
+                col5 <- cohen.kappa(t)$kappa
+                
                 #Sensitivity
-                col5 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
+                col6 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #Specificity
-                col6 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
+                col7 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #PPV
-                col7 <- (t[1,1]) / ( t[1,1] + t[1,2] )
+                col8 <- (t[1,1]) / ( t[1,1] + t[1,2] )
                 #posPredValue(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #NPV
-                col8 <- (t[2,2]) / ( t[2,1] + t[2,2] )
+                col9 <- (t[2,2]) / ( t[2,1] + t[2,2] )
                 #negPredValue(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #Inflation Factor | TAP = (a+b)/(a+c)
                 TAP = (t[1,1] + t[1, 2]) / (t[1,1] + t[2, 1])
-                col9 <- TAP
+                col10 <- TAP
                 
-                c(col1, col2, col3, col4, col5, col6, col7, col8, col9)
+                c(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)
 }
 
 
 # Initial Client Assessment
 
-  Stage1 <- rep(NA, 9)
+  Stage1 <- rep(NA, 10)
   Q201 <- AUC1(obs_ints$i_Q201_examine, obs_ints$o_Q112_bc) 
   Q202 <- AUC1(obs_ints$i_Q202_tension, obs_ints$o_Q110_tensionart)
   Q203 <- AUC1(obs_ints$i_Q203_temp, obs_ints$o_Q108_temp)
@@ -151,20 +155,20 @@ AUC1 <- function(var1, var2) {
 
 # Intermittent Observation of First Stage of Labor
 
-  Stage2 <- rep(NA, 9)  
+  Stage2 <- rep(NA, 10)  
   Q304 <- AUC1(obs_ints$i_Q304_consommer, obs_ints$o_Q226_consommer)
   Q305 <- AUC1(obs_ints$i_Q305_lever, obs_ints$o_Q227_positions)
 
 # Continuous Observation of Second and Third Stage of Labor
 
-  Stage3 <- rep(NA, 9)
+  Stage3 <- rep(NA, 10)
   Q209 <- AUC1(obs_ints$i_Q209_injection, obs_ints$o_Q309_utertonique)
   Q212 <- AUC1(obs_ints$i_Q212_masse, obs_ints$o_Q316_massageuterin)
   Q214 <- AUC1(obs_ints$i_Q214_contrepression, obs_ints$o_Q315_traction)  #le placenta recode
 
 # Immediate Newborn and Postpartum Care
 
-  Stage4 <- rep(NA, 9)
+  Stage4 <- rep(NA, 10)
   Q215 <- AUC1(obs_ints$i_Q215_seche, obs_ints$o_Q402_seche)
   Q216 <- AUC1(obs_ints$i_Q216_peau, obs_ints$o_Q407_peau)
   Q218 <- AUC1(obs_ints$i_Q218_misausein, obs_ints$o_Q412_allaitement)
@@ -173,7 +177,7 @@ AUC1 <- function(var1, var2) {
 
 # Outcomes 
 
-  Stage5 <- rep(NA, 9) 
+  Stage5 <- rep(NA, 10) 
   Q208 <- AUC1(obs_ints$i_Q208_pousser, obs_ints$o_Q503_pression)
   Q308 <- AUC1(obs_ints$i_Q307_position, obs_ints$o_Q503_verbale)
   Q309 <- AUC1(obs_ints$i_Q307_position, obs_ints$o_Q503_physical)
@@ -199,7 +203,7 @@ AUC1 <- function(var1, var2) {
 # Adding column names   
 
   names(df) <- c("Interview Question", "Observation Question", "N", "Interview (%)", "Observation (%)",
-                 "Percent agreement", "Sensitivity of Self-Report", "Specificity of Self-Report", "Positive Predictive Value", "Negative Predictive Value", "Inflation Factor")
+                 "Percent agreement", "Cohen's Kappa", "Sensitivity of Self-Report", "Specificity of Self-Report", "Positive Predictive Value", "Negative Predictive Value", "Inflation Factor")
 
 # Getting rid of decimals in N's
 
@@ -207,7 +211,7 @@ AUC1 <- function(var1, var2) {
 
 # Creating HTML code
 
-p <-  print(xtable(df, align=replicate(12, "center")), type="html")
+p <-  print(xtable(df, align=replicate(13, "center")), type="html")
 
 #-------------------------------------------------------------------------------------------------------------#
 
