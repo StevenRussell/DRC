@@ -5,10 +5,11 @@ rm(list=ls())
 library(dplyr)
 library(xtable)
 library(caret)
+library(psych)
 
 # Importing observation data
 
-  obs <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_obs_data.csv", colClasses=c(Q01_CodeObs_b="character"))
+  obs <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_obs_data_baseline.csv", colClasses=c(Q01_CodeObs_b="character"))
 
   names(obs) <- paste("o_", names(obs), sep="")
   obs <- rename(obs, ID = o_Q01_CodeObs_b )
@@ -30,7 +31,7 @@ library(caret)
   
 # Importing interview data
 
-  ints <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_int_data.csv", colClasses=c(Q05_ID="character"))
+  ints <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_int_data_baseline.csv", colClasses=c(Q05_ID="character"))
 
   names(ints) <- paste("i_", names(ints), sep="") 
   ints <- rename(ints, ID = i_Q05_ID )
@@ -39,7 +40,7 @@ library(caret)
   
 # Importing partograph data
 
-  part <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_part_data.csv", colClasses=c(Code="character"))
+  part <- read.csv("//cdc.gov/private/L330/ykf1/New folder/DRC/R2HC_part_data_baseline.csv", colClasses=c(Code="character"))
 
   names(part) <- paste("p_", names(part), sep="")
   part <- rename(part, ID = p_Code )
@@ -87,31 +88,34 @@ rm_miss <- function(var1, var2) {
                 #Percent agreement
                 col4 <- (t[1,1] + t[2, 2]) / ( t[1,1] + t[1,2] + t[2,1] + t[2,2] ) * 100
                 
+                #Cohen's kappa
+                col5 <- cohen.kappa(t)$kappa
+                  
                 #Sensitivity
-                col5 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
+                col6 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #Specificity
-                col6 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
+                col7 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #PPV
-                col7 <- (t[1,1]) / ( t[1,1] + t[1,2] )
+                col8 <- (t[1,1]) / ( t[1,1] + t[1,2] )
                 #posPredValue(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #NPV
-                col8 <- (t[2,2]) / ( t[2,1] + t[2,2] )
+                col9 <- (t[2,2]) / ( t[2,1] + t[2,2] )
                 #negPredValue(dtab[,short.var.1], dtab[,short.var.2])
                 
                 #Inflation Factor | TAP = (a+b)/(a+c)
                 TAP = (t[1,1] + t[1, 2]) / (t[1,1] + t[2, 1])
-                col9 <- TAP
+                col10 <- TAP
                 
-                c(col1, col2, col3, col4, col5, col6, col7, col8, col9)
+                c(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10)
 
 }
 
 # Initial Client Assessment
 
-  Stage1 <- rep(NA, 9)
+  Stage1 <- rep(NA, 10)
   Q201 <- rm_miss(obs_ints$i_Q201_examine, obs_ints$o_Q112_bc) 
   Q202 <- rm_miss(obs_ints$i_Q202_tension, obs_ints$o_Q110_tensionart)
   Q203 <- rm_miss(obs_ints$i_Q203_temp, obs_ints$o_Q108_temp)
@@ -121,20 +125,20 @@ rm_miss <- function(var1, var2) {
 
 # Intermittent Observation of First Stage of Labor
 
-  Stage2 <- rep(NA, 9) 
+  Stage2 <- rep(NA, 10) 
   Q304 <- rm_miss(obs_ints$i_Q304_consommer, obs_ints$o_Q226_consommer)
   Q305 <- rm_miss(obs_ints$i_Q305_lever, obs_ints$o_Q227_positions)
 
 # Continuous Observation of Second and Third Stage of Labor
 
-  Stage3 <- rep(NA, 9) 
+  Stage3 <- rep(NA, 10) 
   Q209 <- rm_miss(obs_ints$i_Q209_injection, obs_ints$o_Q309_utertonique)
   Q212 <- rm_miss(obs_ints$i_Q212_masse, obs_ints$o_Q316_massageuterin)
   Q214 <- rm_miss(obs_ints$i_Q214_contrepression, obs_ints$o_Q315_traction)  #le placenta recode
 
 # Immediate Newborn and Postpartum Care
 
-  Stage4 <- rep(NA, 9)
+  Stage4 <- rep(NA, 10)
   Q215 <- rm_miss(obs_ints$i_Q215_seche, obs_ints$o_Q402_seche)
   Q216 <- rm_miss(obs_ints$i_Q216_peau, obs_ints$o_Q407_peau)
   Q218 <- rm_miss(obs_ints$i_Q218_misausein, obs_ints$o_Q412_allaitement)
@@ -143,7 +147,7 @@ rm_miss <- function(var1, var2) {
 
 # Outcomes 
 
-  Stage5 <- rep(NA, 9)
+  Stage5 <- rep(NA, 10)
   Q208 <- rm_miss(obs_ints$i_Q208_pousser, obs_ints$o_Q503_pression)
   Q308 <- rm_miss(obs_ints$i_Q307_position, obs_ints$o_Q503_verbale)
   Q309 <- rm_miss(obs_ints$i_Q307_position, obs_ints$o_Q503_physical)
@@ -169,7 +173,7 @@ rm_miss <- function(var1, var2) {
 # Adding column names   
 
   names(df) <- c("Interview Question", "Observation Question", "N", "Interview (%)", "Observation (%)",
-                 "Percent agreement", "Sensitivity of Self-Report", "Specificity of Self-Report", "Positive Predictive Value", "Negative Predictive Value", "Inflation Factor")
+                 "Percent agreement", "Cohen's Kappa", "Sensitivity of Self-Report", "Specificity of Self-Report", "Positive Predictive Value", "Negative Predictive Value", "Inflation Factor")
 
 # Getting rid of decimals in N's
 
@@ -177,7 +181,7 @@ rm_miss <- function(var1, var2) {
 
 # Creating HTML code
 
-  p <-  print(xtable(df, align=replicate(12, "center")), type="html")
+  p <-  print(xtable(df, align=replicate(13, "center")), type="html")
 
 #-------------------------------------------------------------------------------------------------------------#
 
@@ -217,28 +221,34 @@ rm_miss3 <- function(var1, var2) {
   t.o =  table(dtab[,short.var.2])
   col3 <- t.o[1] / ( t.o[1] + t.o[2] ) * 100
     
+  #Percent agreement
+  col4 <- (t[1,1] + t[2, 2]) / ( t[1,1] + t[1,2] + t[2,1] + t[2,2] ) * 100
+  
+  #Cohen's kappa
+  col5 <- cohen.kappa(t)$kappa
+  
   #Sensitivity
-  col4 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
+  col6 <- sensitivity(dtab[,short.var.1], dtab[,short.var.2])
   
   #Specificity
-  col5 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
+  col7 <- specificity(dtab[,short.var.1], dtab[,short.var.2])
   
   #AUC
-  col6 <- (col4+col5)/2
+  col8 <- (col4+col5)/2
   
   #Inflation Factor | TAP = (a+b)/(a+c)
   TAP = (t[1,1] + t[1, 2]) / (t[1,1] + t[2, 1])
-  col7 <- TAP
+  col9 <- TAP
   
-  c(col1, col2, col3, col4, col5, col6, col7)
+  c(col1, col2, col3, col4, col5, col6, col7, col8, col9)
 }
 
-Stage3 <- c( NA, NA, NA, NA, NA, NA, NA)
+Stage3 <- c( NA, NA, NA, NA, NA, NA, NA, NA, NA)
 Q04 <- rm_miss3(part_obs$p_Q04_utertonique, part_obs$o_Q309_utertonique)
 Q05 <- rm_miss3(part_obs$p_Q05_tractioncordon, part_obs$o_Q315_traction )
 Q06 <- rm_miss3(part_obs$p_Q06_massage, part_obs$o_Q316_massageuterin )
 
-Stage4 <- c( NA, NA, NA, NA, NA, NA, NA)
+Stage4 <- c( NA, NA, NA, NA, NA, NA, NA, NA, NA)
 #Q07 <- rm_miss3(part_obs$p_Q07_crede, part_obs$o_Q414_vitaminek )
 Q08 <- rm_miss3(part_obs$p_Q08_soinscordon, part_obs$o_Q406_coupe )
 Q09 <- rm_miss3(part_obs$p_Q09_allaitement, part_obs$o_Q412_allaitement )
@@ -258,8 +268,7 @@ Observation2 <- x2[,2]
 
 # Adding column names   
 
-  names(df3) <- c("Partograph Question", "Observation Question", "N", "Partograph (%)", "Observation (%)",
-               "Sensitivity of Self-Report", "Specificity of Self-Report", "AUC", "IF")
+  names(df3) <- c("Partograph Question", "Observation Question", "N", "Partograph (%)", "Observation (%)", "Percent Agreement", "Cohen's Kappa", "Sensitivity of Self-Report", "Specificity of Self-Report", "AUC", "IF")
 
   # Getting rid of decimals in N's
   
